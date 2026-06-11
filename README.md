@@ -8,6 +8,8 @@ The system is designed to mimic a **production-grade low-latency trading data pi
 
 ---
 
+
+
 ## 🏗️ Architecture
 
 Stock Tick Generator (Python)
@@ -29,6 +31,7 @@ Gold Layer (Business Aggregations - OHLCV + Analytics)
         │
         ├── PostgreSQL (Analytics Tables)
         └── Parquet Storage (Historical Data)
+
 
 ---
 
