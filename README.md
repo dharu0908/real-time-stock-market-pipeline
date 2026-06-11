@@ -113,21 +113,21 @@ python transformation/gold.py
 ## 📸 Screenshots
 
 ### Pipeline Execution
-![Gold Batch Processing](screenshots/gold-batch-log.png)
+![Gold Batch Processing](Screenshots/gold-batch-log.png)
 
 ### Kafka Setup
-![Kafka Topics](screenshots/kafka-topics-list.png)
-![Kafka Topic Details](screenshots/kafka-topic-overview.png)
-![Live Messages](screenshots/kafka-messages.png)
+![Kafka Topics](Screenshots/kafka-topics-list.png)
+![Kafka Topic Details](Screenshots/kafka-topic-overview.png)
+![Live Messages](Screenshots/kafka-messages.png)
 
 ### Producer
-![Kafka Producer Running](screenshots/kafka-producer-running.png)
+![Kafka Producer Running](Screenshots/kafka-producer-running.png)
 
 ### Gold Layer Analytics
-![Gold Layer OHLCV Data](screenshots/postgres-gold-layer.png)
+![Gold Layer OHLCV Data](Screenshots/postgres-gold-layer.png)
 
 ### Infrastructure
-![Docker Services](screenshots/docker-containers.png)
+![Docker Services](Screenshots/docker-containers.png)
 
 ---
 
