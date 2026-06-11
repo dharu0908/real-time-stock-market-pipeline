@@ -23,16 +23,7 @@
 
 ## 🏗️ Architecture
 
-```mermaid
-graph TD
-    A[Producer<br/>Python + Confluent Kafka] 
-    --> B[(Kafka Topic: stock_ticks<br/>3 Partitions)]
-    B --> C[Bronze Layer<br/>Spark Streaming + Parsing + DLQ]
-    C --> D[Silver Layer<br/>Cleaning + Enrichment + Deduplication]
-    D --> E[Gold Layer<br/>Windowed OHLCV + Business Metrics]
-    E --> F[(PostgreSQL<br/>gold_ohlcv_1min + gold_top_movers)]
-    E --> G[Parquet<br/>(GOLD_PATH)]
-```
+![Gold Batch Processing](Screenshots/diagram.png)
 
 ---
 
