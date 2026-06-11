@@ -1,108 +1,145 @@
-# 📈 Real-Time Stock Market Data Pipeline (Kafka + Spark + PostgreSQL)
+# 📈 Real-Time Stock Market Data Pipeline
 
-## 🚀 Overview
+**Production-grade real-time streaming pipeline** using **Apache Kafka + Spark Structured Streaming** with **Medallion Architecture** (Bronze → Silver → Gold).
 
-This project is a **real-time streaming data engineering pipeline** that simulates stock market tick data, processes it through a **Medallion Architecture (Bronze → Silver → Gold)** using **Apache Kafka and Apache Spark Structured Streaming**, and generates real-time financial analytics stored in **PostgreSQL and Parquet storage**.
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
+![Apache Spark](https://img.shields.io/badge/Apache%20Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-The system is designed to mimic a **production-grade low-latency trading data pipeline** used in financial systems.
+---
+
+## ✨ Key Highlights
+
+- **End-to-End Real-time Pipeline** ingesting, processing, and analyzing live-like stock tick data
+- **Medallion Architecture**: Bronze (raw + validated), Silver (cleansed + enriched), Gold (aggregated analytics)
+- **Robust Data Quality**: Schema validation, Dead Letter Queue (DLQ), deduplication, watermarking
+- **Advanced Financial Metrics**: 1-minute OHLCV candles, VWAP, spread analysis, price range, Top Movers
+- **Fault Tolerant & Scalable**: Checkpointing, partitioning, configurable micro-batches
+- **Fully Containerized** with Docker Compose + Kafka UI + PostgreSQL
 
 ---
 
 ## 🏗️ Architecture
 
-Stock Tick Generator (Python)
-        │
-        ▼
-Kafka Topic (Real-Time Event Streaming)
-        │
-        ▼
-Bronze Layer (Raw Ingestion - Spark Streaming)
-        │
-        ├── Valid Events → Bronze Parquet Storage
-        └── Invalid Events → Dead Letter Queue (DLQ)
-        │
-        ▼
-Silver Layer (Cleaned & Structured Data)
-        │
-        ▼
-Gold Layer (Business Aggregations - OHLCV + Analytics)
-        │
-        ├── PostgreSQL (Analytics Tables)
-        └── Parquet Storage (Historical Data)
+```mermaid
+graph TD
+    A[Producer<br/>Python + Confluent Kafka] 
+    --> B[(Kafka Topic: stock_ticks<br/>3 Partitions)]
+    B --> C[Bronze Layer<br/>Spark Streaming + Parsing + DLQ]
+    C --> D[Silver Layer<br/>Cleaning + Enrichment + Deduplication]
+    D --> E[Gold Layer<br/>Windowed OHLCV + Business Metrics]
+    E --> F[(PostgreSQL<br/>gold_ohlcv_1min + gold_top_movers)]
+    E --> G[Parquet<br/>(GOLD_PATH)]
+```
 
 ---
 
-## ⚙️ Tech Stack
+## 🛠️ Tech Stack
 
-- Python
-- Apache Kafka
-- Apache Spark Structured Streaming
-- PostgreSQL
-- Docker
-- Parquet Storage
-- Confluent Kafka Python Client
-
----
-
-## 📂 Project Structure
-
-producer/ -> Generates real-time stock ticks
-consumer/ -> Bronze layer ingestion from Kafka
-transformation/ -> Silver & Gold transformations
-serving/ -> Analytics layer
-config/ -> Configurations
-docker/ -> Docker setup
+| Component          | Technology                                      |
+|--------------------|-------------------------------------------------|
+| **Ingestion**      | Python, Confluent Kafka Producer                |
+| **Streaming**      | Apache Kafka, Spark Structured Streaming 3.5    |
+| **Processing**     | PySpark, Watermarking, Window Aggregations      |
+| **Storage**        | Parquet (Bronze/Silver/Gold), PostgreSQL        |
+| **Orchestration**  | Docker Compose                                  |
+| **Monitoring**     | Kafka UI                                        |
 
 ---
 
-## 🔄 Data Flow
+## 📁 Project Structure
 
-Producer → Kafka → Bronze → Silver → Gold → PostgreSQL + Parquet
-
----
-
-## 📊 Gold Layer Metrics
-
-- OHLCV Candles (Open, High, Low, Close, Volume)
-- VWAP
-- Tick Count
-- Spread Metrics
-- Top Movers (% Change)
-
----
-
-## ⚡ Features
-
-- Real-time streaming pipeline
-- Medallion architecture
-- Kafka ingestion
-- Spark Structured Streaming
-- Dead Letter Queue handling
-- Checkpointing
-- PostgreSQL analytics layer
+```bash
+real-time-stock-market-pipeline/
+├── config/config.py
+├── producer/producer.py
+├── consumer/bronze_stream.py          # Bronze consumer
+├── transformation/
+│   ├── silver.py
+│   └── gold.py
+├── docker/
+│   ├── docker-compose.yml
+│   └── init.sql
+├── data/                              # Bronze, Silver, Gold, Checkpoints
+├── screenshots/
+└── README.md
+```
 
 ---
 
-## 🐳 How to Run
+## 🚀 Quick Start
 
+### Prerequisites
+- Docker & Docker Compose
+- Python 3.9+ (`confluent-kafka`, `pyspark`)
+
+### 1. Start Infrastructure
+```bash
+cd docker
 docker-compose up -d
-python producer/producer.py
+```
+
+### 2. Run Pipeline
+
+**Terminal 1 - Producer:**
+```bash
+python producer/producer.py --rps 10
+```
+
+**Terminal 2 - Bronze Layer:**
+```bash
 python consumer/bronze_stream.py
+```
+
+**Terminal 3 - Silver Layer:**
+```bash
 python transformation/silver.py
+```
+
+**Terminal 4 - Gold Layer:**
+```bash
 python transformation/gold.py
+```
+
+### Access Points
+- **Kafka UI**: http://localhost:8080
+- **PostgreSQL**: `localhost:5432` (user: `stockuser`, pass: `stockpass`)
+- **pgAdmin**: http://localhost:5050
 
 ---
 
-## 🚀 Future Improvements
+## 📸 Screenshots
 
-- Airflow orchestration
-- AWS deployment (S3 + Glue + MSK)
-- Grafana dashboard
-- dbt transformations
-- ML price prediction
+### Pipeline Execution
+![Gold Batch Processing](screenshots/gold-batch-log.png)
+
+### Kafka Setup
+![Kafka Topics](screenshots/kafka-topics-list.png)
+![Kafka Topic Details](screenshots/kafka-topic-overview.png)
+![Live Messages](screenshots/kafka-messages.png)
+
+### Producer
+![Kafka Producer Running](screenshots/kafka-producer-running.png)
+
+### Gold Layer Analytics
+![Gold Layer OHLCV Data](screenshots/postgres-gold-layer.png)
+
+### Infrastructure
+![Docker Services](screenshots/docker-containers.png)
 
 ---
 
-## 👨‍💻 Author
+## 🔮 Future Enhancements
 
-Dharmik Patel
+- Airflow / Dagster orchestration
+- Cloud deployment (AWS MSK + EMR + Redshift)
+- Real-time dashboard (Grafana / Superset)
+- Machine Learning models for price prediction
+
+---
+
+**Made with ❤️ by Dharmik Patel**
+
+**⭐ Star this repo if you found it useful!**
