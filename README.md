@@ -96,9 +96,9 @@ python transformation/gold.py
 
 ### Access Points
 - **Kafka UI**: http://localhost:8080
-- **PostgreSQL**: `localhost:5432` (user: `stockuser`, pass: `stockpass`)
+- **PostgreSQL**: `localhost:5432` 
 - **pgAdmin**: http://localhost:5050
-
+<!-- (user: `stockuser`, pass: `stockpass`) -->
 ---
 
 ## 📸 Screenshots
