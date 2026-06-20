@@ -19,3 +19,4 @@ Thumbs.db
 
 # Docker volumes (optional safety)
 *.log
+

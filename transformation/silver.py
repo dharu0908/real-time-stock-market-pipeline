@@ -3,6 +3,7 @@ from pyspark.sql.functions import *
 import logging
 import sys
 from pathlib import Path
+from delta import configure_spark_with_delta_pip
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -27,20 +28,20 @@ logger = logging.getLogger("silver")
 # ─────────────────────────────────────────────
 # Spark Session
 # ─────────────────────────────────────────────
-def spark_builder() -> SparkSession:
-
-    spark = (
+def spark_builder():
+    builder = (
         SparkSession.builder
         .appName("SilverStream")
         .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.LocalFileSystem")
         .config("spark.hadoop.fs.AbstractFileSystem.file.impl", "org.apache.hadoop.fs.local.LocalFs")
         .config("spark.sql.streaming.fileSource.log.cleanupDelay", "0")
-        .getOrCreate()
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     )
 
+    spark = configure_spark_with_delta_pip(builder).getOrCreate()
     spark.sparkContext.setLogLevel("WARN")
     return spark
-
 
 # ─────────────────────────────────────────────
 # Read Bronze Stream
@@ -50,12 +51,11 @@ def read_bronze_stream(spark: SparkSession) -> DataFrame:
     logger.info(f"Reading bronze stream: {BRONZE_PATH}/ticks")
 
     return (
-        spark.readStream
-        .format("parquet")
-        .schema(BRONZE_SCHEMA)
-        .option("maxFilesPerTrigger", 5)
-        .load(f"{BRONZE_PATH}/ticks")
-    )
+    spark.readStream
+    .format("delta")
+    .option("maxFilesPerTrigger", 5)
+    .load(f"{BRONZE_PATH}/ticks")
+)
 
 
 # ─────────────────────────────────────────────
@@ -109,12 +109,13 @@ def clean_and_enrich(df: DataFrame) -> DataFrame:
 # ─────────────────────────────────────────────
 def write_silver(df: DataFrame) -> None:
 
-    (
-        df.write
-        .mode("append")
-        .partitionBy("trade_date", "ticker")
-        .parquet(f"{SILVER_PATH}/ticks")
-    )
+   (
+    df.write
+    .format("delta")
+    .mode("append")
+    .partitionBy("trade_date", "ticker")
+    .save(f"{SILVER_PATH}/ticks")
+)
 
 
 # ─────────────────────────────────────────────

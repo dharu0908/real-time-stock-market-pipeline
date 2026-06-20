@@ -5,10 +5,17 @@ from pyspark.sql.types import *
 
 import sys
 from pathlib import Path
-
+from delta import configure_spark_with_delta_pip
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from config.config import *
 
+POSTGRES_URL = "jdbc:postgresql://localhost:5432/stockdb"
+
+POSTGRES_PROPERTIES = {
+    "user": "stockuser",
+    "password": "stockpass",
+    "driver": "org.postgresql.Driver"
+}
 
 # ─────────────────────────────────────────────
 # Logging
@@ -29,14 +36,30 @@ logger = logging.getLogger("gold")
 # ─────────────────────────────────────────────
 
 def spark_builder():
-    spark = (
+
+    builder = (
         SparkSession.builder
         .appName("gold")
-        .getOrCreate()
+        .config(
+            "spark.sql.extensions",
+            "io.delta.sql.DeltaSparkSessionExtension"
+        )
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+        )
     )
-    spark.sparkContext.setLogLevel("WARN")
-    return spark
 
+    spark = configure_spark_with_delta_pip(
+        builder,
+        extra_packages=[
+            "org.postgresql:postgresql:42.7.3"
+        ]
+    ).getOrCreate()
+
+    spark.sparkContext.setLogLevel("WARN")
+
+    return spark
 
 # ─────────────────────────────────────────────
 # Read Silver Stream
@@ -45,12 +68,10 @@ def spark_builder():
 def read_silver_stream(spark):
     return (
         spark.readStream
-        .format("parquet")
-        .schema(SILVER_SCHEMA)
+        .format("delta")
         .option("maxFilesPerTrigger", 5)
         .load(f"{SILVER_PATH}/ticks")
     )
-
 
 # ─────────────────────────────────────────────
 # OHLCV builder
@@ -140,6 +161,20 @@ def process_batch(batch_df: DataFrame, batch_id: int):
             return
 
         movers = build_top_movers(ohlcv)
+
+        logger.info(f"[Batch {batch_id}] Writing Top Movers to PostgreSQL...")
+
+        (
+                movers.write
+                .mode("append")
+                .jdbc(
+                    url=POSTGRES_URL,
+                    table="gold_top_movers",
+                    properties=POSTGRES_PROPERTIES
+                )
+            )
+
+        logger.info(f"[Batch {batch_id}] Top Movers PostgreSQL write successful")
         top_movers_sample = movers.limit(5).collect()
 
         logger.info(f"[Batch {batch_id}] Top movers sample:")
@@ -150,14 +185,30 @@ def process_batch(batch_df: DataFrame, batch_id: int):
                 f"change={row['pct_change']:.2f}%"
             )
 
+
         logger.info(f"[Batch {batch_id}] Writing OHLCV to gold layer...")
 
+        logger.info(f"[Batch {batch_id}] Writing OHLCV to PostgreSQL...")
+
         (
-            ohlcv.write
-            .mode("append")
-            .partitionBy("window_start")
-            .parquet(f"{GOLD_PATH}/ohlcv")
-        )
+                    ohlcv.write
+                    .mode("append")
+                    .jdbc(
+                        url=POSTGRES_URL,
+                        table="gold_ohlcv_1min",
+                        properties=POSTGRES_PROPERTIES
+                    )
+                )
+
+        logger.info(f"[Batch {batch_id}] OHLCV PostgreSQL write successful")
+
+        (
+        ohlcv.write
+        .format("delta")
+        .mode("append")
+        .partitionBy("window_start")
+        .save(f"{GOLD_PATH}/ohlcv")
+    )
 
         logger.info(f"[Batch {batch_id}] Write successful")
 

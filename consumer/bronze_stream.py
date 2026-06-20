@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
+from delta import configure_spark_with_delta_pip
 
 # ─────────────────────────────────────────────
 # PATH SETUP
@@ -33,24 +34,36 @@ log = logging.getLogger("bronze_stream")
 # ─────────────────────────────────────────────
 # SPARK SESSION
 # ─────────────────────────────────────────────
-def spark_builder() -> SparkSession:
-    spark = (
+
+
+def spark_builder():
+
+    builder = (
         SparkSession.builder
         .appName("BronzeKafkaStream")
-        .config(
-            "spark.jars.packages",
-            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8"
-        )
         .config("spark.sql.shuffle.partitions", "2")
         .config("spark.executor.heartbeatInterval", "20s")
         .config("spark.network.timeout", "120s")
-        .getOrCreate()
+        .config(
+            "spark.sql.extensions",
+            "io.delta.sql.DeltaSparkSessionExtension"
+        )
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog"
+        )
     )
 
+    spark = configure_spark_with_delta_pip(
+        builder,
+        extra_packages=[
+            "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.8"
+        ]
+    ).getOrCreate()
+
     spark.sparkContext.setLogLevel("WARN")
+
     return spark
-
-
 # ─────────────────────────────────────────────
 # READ FROM KAFKA
 # ─────────────────────────────────────────────
@@ -156,23 +169,24 @@ def process_batch(batch_df: DataFrame, batch_id: int) -> None:
     
 
     # ───────────── BRONZE WRITE ─────────────
+    # ───────────── GOOD RECORDS WRITE ─────────────
     if good_exists:
         (
             good.write
+            .format("delta")
             .mode("append")
-            .partitionBy("event_date")   # cleaner bronze design
-            .parquet(f"{BRONZE_PATH}/ticks")
+            .partitionBy("event_date")
+            .save(f"{BRONZE_PATH}/ticks")
         )
 
     # ───────────── DLQ WRITE ─────────────
     if bad_exists:
         (
             bad.write
+            .format("delta")
             .mode("append")
-            .parquet(f"{BRONZE_PATH}/dead_letter")
+            .save(f"{BRONZE_PATH}/dead_letter")
         )
-
-
 # ─────────────────────────────────────────────
 # MAIN STREAM
 # ─────────────────────────────────────────────
