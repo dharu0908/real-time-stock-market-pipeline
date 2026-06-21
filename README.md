@@ -28,7 +28,7 @@ This project demonstrates how modern streaming technologies can be used to build
 
 ## Architecture
 
-![Architecture](screenshots/architecture.png)
+![Architecture](Screenshots/architecture.png)
 
 ### Data Flow
 
@@ -145,11 +145,11 @@ Features:
 
 ### Dashboard Overview
 
-![Dashboard Overview](screenshots/streamlit_1.png)
+![Dashboard Overview](Screenshots/streamlit_1.png)
 
 ### OHLCV Analytics
 
-![OHLCV Analytics](screenshots/streamlit_2.png)
+![OHLCV Analytics](Screenshots/streamlit_2.png)
 
 ---
 
@@ -191,23 +191,23 @@ Features:
 
 ### Kafka Infrastructure
 
-![Kafka Topics](screenshots/kafka-topics-list.png)
+![Kafka Topics](Screenshots/kafka-topics-list.png)
 
 ### Kafka Messages
 
-![Kafka Messages](screenshots/kafka-messages.png)
+![Kafka Messages](Screenshots/kafka-messages.png)
 
 ### Producer
 
-![Producer](screenshots/kafka-producer-running.png)
+![Producer](Screenshots/kafka-producer-running.png)
 
 ### Gold Layer Analytics
 
-![Gold Layer](screenshots/postgres-gold-layer.png)
+![Gold Layer](Screenshots/postgres-gold-layer.png)
 
 ### Docker Services
 
-![Docker Containers](screenshots/docker-containers.png)
+![Docker Containers](Screenshots/docker-containers.png)
 
 ---
 
