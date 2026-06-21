@@ -1,136 +1,278 @@
-# 📈 Real-Time Stock Market Data Pipeline
+# Real-Time Stock Market Data Pipeline
 
-**Production-grade real-time streaming pipeline** using **Apache Kafka + Spark Structured Streaming** with **Medallion Architecture** (Bronze → Silver → Gold).
+## Overview
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
-![Apache Spark](https://img.shields.io/badge/Apache%20Spark-E25A1C?style=for-the-badge&logo=apache-spark&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+Financial applications require the ability to process and analyze market data in real time. Traditional batch pipelines introduce latency, making them unsuitable for monitoring rapidly changing stock prices and trading activity.
 
----
+This project builds an end-to-end real-time data platform using Apache Kafka, Spark Structured Streaming, Delta Lake, PostgreSQL, and Streamlit.
 
-## ✨ Key Highlights
-
-- **End-to-End Real-time Pipeline** ingesting, processing, and analyzing live-like stock tick data
-- **Medallion Architecture**: Bronze (raw + validated), Silver (cleansed + enriched), Gold (aggregated analytics)
-- **Robust Data Quality**: Schema validation, Dead Letter Queue (DLQ), deduplication, watermarking
-- **Advanced Financial Metrics**: 1-minute OHLCV candles, VWAP, spread analysis, price range, Top Movers
-- **Fault Tolerant & Scalable**: Checkpointing, partitioning, configurable micro-batches
-- **Fully Containerized** with Docker Compose + Kafka UI + PostgreSQL
+The platform ingests simulated stock market data, processes it through a Medallion Architecture (Bronze → Silver → Gold), calculates financial metrics, and serves analytics through an interactive dashboard.
 
 ---
 
-## 🏗️ Architecture
+## Business Problem
 
-![Gold Batch Processing](Screenshots/diagram.png)
+Financial systems generate thousands of market events every second.
 
----
+Organizations need to:
 
-## 🛠️ Tech Stack
+- Process stock market events in real time
+- Maintain data quality and reliability
+- Calculate trading metrics continuously
+- Deliver low-latency analytics
+- Support scalable downstream applications
 
-| Component          | Technology                                      |
-|--------------------|-------------------------------------------------|
-| **Ingestion**      | Python, Confluent Kafka Producer                |
-| **Streaming**      | Apache Kafka, Spark Structured Streaming 3.5    |
-| **Processing**     | PySpark, Watermarking, Window Aggregations      |
-| **Storage**        | Parquet (Bronze/Silver/Gold), PostgreSQL        |
-| **Orchestration**  | Docker Compose                                  |
-| **Monitoring**     | Kafka UI                                        |
+This project demonstrates how modern streaming technologies can be used to build a production-style stock market analytics platform.
 
 ---
 
-## 📁 Project Structure
+## Architecture
 
-```bash
+![Architecture](screenshots/architecture.png)
+
+### Data Flow
+
+```text
+Stock Tick Generator
+         │
+         ▼
+    Apache Kafka
+         │
+         ▼
+ Spark Structured Streaming
+         │
+ ┌───────┼────────┐
+ ▼       ▼        ▼
+Bronze  Silver   Gold
+         │
+         ▼
+    PostgreSQL
+         │
+         ▼
+      Streamlit
+```
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---------|------------|
+| Programming | Python |
+| Streaming Platform | Apache Kafka |
+| Stream Processing | Apache Spark Structured Streaming |
+| Processing Framework | PySpark |
+| Storage Format | Delta Lake |
+| Database | PostgreSQL |
+| Dashboard | Streamlit |
+| Containerization | Docker |
+| Monitoring | Kafka UI |
+| CI/CD | GitHub Actions |
+| Version Control | Git & GitHub |
+
+---
+
+## Data Pipeline
+
+### Bronze Layer
+
+The Bronze layer ingests raw stock tick events from Kafka and stores them in Delta Lake.
+
+Responsibilities:
+
+- Schema validation
+- Raw event persistence
+- Fault tolerance through checkpointing
+- Data quality validation
+
+Example fields:
+
+```text
+event_id
+ticker
+price
+bid
+ask
+volume
+event_time
+```
+
+---
+
+### Silver Layer
+
+The Silver layer enriches and standardizes market events.
+
+Calculated metrics:
+
+- Spread
+- Spread Percentage
+- Notional Value
+- Price Bucket Classification
+
+This layer prepares data for analytical consumption.
+
+---
+
+### Gold Layer
+
+The Gold layer generates business-ready analytics.
+
+Metrics include:
+
+- OHLCV Candles
+- VWAP (Volume Weighted Average Price)
+- Average Spread Percentage
+- Price Range
+- Top Movers Analysis
+
+These datasets are loaded into PostgreSQL for serving and visualization.
+
+---
+
+## Dashboard
+
+A Streamlit dashboard was built on top of the PostgreSQL serving layer to provide real-time market analytics.
+
+Features:
+
+- Stock selection by ticker
+- KPI monitoring
+- Price trend visualization
+- VWAP tracking
+- Volume analysis
+- OHLCV reporting
+
+### Dashboard Overview
+
+![Dashboard Overview](screenshots/streamlit_1.png)
+
+### OHLCV Analytics
+
+![OHLCV Analytics](screenshots/streamlit_2.png)
+
+---
+
+## Key Features
+
+### Real-Time Processing
+
+- Kafka-based event streaming
+- Spark Structured Streaming
+- Continuous micro-batch processing
+
+### Delta Lake
+
+- Bronze, Silver, and Gold storage layers
+- ACID transactions
+- Reliable data persistence
+
+### Fault Tolerance
+
+- Streaming checkpoints
+- Watermarking
+- Recovery support
+
+### Data Quality
+
+- Schema validation
+- Event standardization
+- Deduplication handling
+
+### DevOps
+
+- Dockerized infrastructure
+- GitHub Actions CI/CD pipeline
+- Automated validation workflows
+
+---
+
+## Pipeline Screenshots
+
+### Kafka Infrastructure
+
+![Kafka Topics](screenshots/kafka-topics-list.png)
+
+### Kafka Messages
+
+![Kafka Messages](screenshots/kafka-messages.png)
+
+### Producer
+
+![Producer](screenshots/kafka-producer-running.png)
+
+### Gold Layer Analytics
+
+![Gold Layer](screenshots/postgres-gold-layer.png)
+
+### Docker Services
+
+![Docker Containers](screenshots/docker-containers.png)
+
+---
+
+## Project Structure
+
+```text
 real-time-stock-market-pipeline/
-├── config/config.py
-├── producer/producer.py
-├── consumer/bronze_stream.py          # Bronze consumer
+│
+├── producer/
+│   └── producer.py
+│
+├── consumer/
+│   └── bronze_stream.py
+│
 ├── transformation/
 │   ├── silver.py
 │   └── gold.py
+│
+├── dashboard/
+│   └── app.py
+│
+├── serving/
+│
 ├── docker/
 │   ├── docker-compose.yml
 │   └── init.sql
-├── data/                              # Bronze, Silver, Gold, Checkpoints
+│
+├── config/
+│   └── config.py
+│
 ├── screenshots/
+│
+├── .github/
+│   └── workflows/
+│
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## Project Outcomes
 
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.9+ (`confluent-kafka`, `pyspark`)
-
-### 1. Start Infrastructure
-```bash
-cd docker
-docker-compose up -d
-```
-
-### 2. Run Pipeline
-
-**Terminal 1 - Producer:**
-```bash
-python producer/producer.py --rps 10
-```
-
-**Terminal 2 - Bronze Layer:**
-```bash
-python consumer/bronze_stream.py
-```
-
-**Terminal 3 - Silver Layer:**
-```bash
-python transformation/silver.py
-```
-
-**Terminal 4 - Gold Layer:**
-```bash
-python transformation/gold.py
-```
-
-### Access Points
-- **Kafka UI**: http://localhost:8080
-- **PostgreSQL**: `localhost:5432` 
-- **pgAdmin**: http://localhost:5050
-<!-- (user: `stockuser`, pass: `stockpass`) -->
----
-
-## 📸 Screenshots
-
-### Pipeline Execution
-![Gold Batch Processing](Screenshots/gold-batch-log.png)
-
-### Kafka Setup
-![Kafka Topics](Screenshots/kafka-topics-list.png)
-![Kafka Topic Details](Screenshots/kafka-topic-overview.png)
-![Live Messages](Screenshots/kafka-messages.png)
-
-### Producer
-![Kafka Producer Running](Screenshots/kafka-producer-running.png)
-
-### Gold Layer Analytics
-![Gold Layer OHLCV Data](Screenshots/postgres-gold-layer.png)
-
-### Infrastructure
-![Docker Services](Screenshots/docker-containers.png)
+- Built an end-to-end real-time stock market analytics platform.
+- Implemented a Medallion Architecture using Delta Lake.
+- Processed streaming stock events using Kafka and Spark Structured Streaming.
+- Calculated financial metrics including OHLCV and VWAP.
+- Developed a real-time Streamlit dashboard for analytics consumption.
+- Implemented Docker-based deployment and infrastructure management.
+- Added GitHub Actions for automated validation and CI/CD.
 
 ---
 
-## 🔮 Future Enhancements
+## Skills Demonstrated
 
-- Airflow / Dagster orchestration
-- Cloud deployment (AWS MSK + EMR + Redshift)
-- Real-time dashboard (Grafana / Superset)
-- Machine Learning models for price prediction
+- Python
+- Apache Kafka
+- Apache Spark
+- PySpark
+- Structured Streaming
+- Delta Lake
+- PostgreSQL
+- Docker
+- Streamlit
+- GitHub Actions
+- Real-Time Data Processing
+- Data Engineering
 
 ---
-
-**Made with ❤️ by Dharmik Patel**
-
-**⭐ Star this repo if you found it useful!**
