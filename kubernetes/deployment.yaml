@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-market-producer
+  labels:
+    app: stock-market-pipeline
+    component: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-market-pipeline
+      component: producer
+  template:
+    metadata:
+      labels:
+        app: stock-market-pipeline
+        component: producer
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: producer
+          image: stock-market-producer:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: KAFKA_TOPIC
+              value: "stock.ticks"
+            - name: PRODUCER_TICKERS
+              value: "AAPL,GOOGL,MSFT,AMZN,TSLA,NVDA,META"
+            - name: EVENTS_PER_SECOND
+              value: "20"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-market-consumer
+  labels:
+    app: stock-market-pipeline
+    component: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-market-pipeline
+      component: consumer
+  template:
+    metadata:
+      labels:
+        app: stock-market-pipeline
+        component: consumer
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: bronze-stream
+          image: stock-market-consumer:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: KAFKA_TOPIC
+              value: "stock.ticks"
+            - name: CHECKPOINT_LOCATION
+              value: "/opt/stock-market/checkpoints/bronze"
+            - name: BRONZE_PATH
+              value: "/opt/stock-market/data/bronze"
+            - name: POSTGRES_HOST
+              value: "postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "stock_market"
+            - name: POSTGRES_USER
+              value: "dharmik"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stock-market-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: checkpoint-storage
+              mountPath: /opt/stock-market/checkpoints
+            - name: bronze-storage
+              mountPath: /opt/stock-market/data/bronze
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+      volumes:
+        - name: checkpoint-storage
+          emptyDir: {}
+        - name: bronze-storage
+          emptyDir: {}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-market-indexer
+  labels:
+    app: stock-market-pipeline
+    component: indexer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-market-pipeline
+      component: indexer
+  template:
+    metadata:
+      labels:
+        app: stock-market-pipeline
+        component: indexer
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: elasticsearch-indexer
+          image: stock-market-indexer:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "stock_market"
+            - name: POSTGRES_USER
+              value: "dharmik"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stock-market-secrets
+                  key: postgres-password
+            - name: ELASTICSEARCH_HOST
+              value: "elasticsearch-service"
+            - name: ELASTICSEARCH_PORT
+              value: "9200"
+            - name: INDEX_INTERVAL_SECONDS
+              value: "60"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-market-dashboard
+  labels:
+    app: stock-market-pipeline
+    component: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-market-pipeline
+      component: dashboard
+  template:
+    metadata:
+      labels:
+        app: stock-market-pipeline
+        component: dashboard
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: streamlit
+          image: stock-market-dashboard:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres-service"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "stock_market"
+            - name: POSTGRES_USER
+              value: "dharmik"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: stock-market-secrets
+                  key: postgres-password
+            - name: ELASTICSEARCH_HOST
+              value: "elasticsearch-service"
+            - name: ELASTICSEARCH_PORT
+              value: "9200"
+          ports:
+            - containerPort: 8501
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
